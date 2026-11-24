@@ -1,0 +1,151 @@
+diff --git a/retroarch.c b/retroarch.c
+index b167283..83a77a9 100644
+--- a/retroarch.c
++++ b/retroarch.c
+@@ -6187,11 +6187,146 @@ void emscripten_mainloop(void)
+ #endif
+ 
+ #ifndef HAVE_MAIN
++
++#if defined(__linux__)
++/* MUN OS: a console starts a game with no arguments, an empty RAM home and
++ * the card's data read-only at MUN_CONTENT_DIR (docs/runtime.md in MUN OS).
++ * When those facts are present and no argument was given, build the command
++ * line RetroArch would otherwise need:
++ *
++ *   --appendconfig=$HOME/.mun/session.cfg [$MUN_CONTENT_DIR/rom/<first file>]
++ *
++ * session.cfg is written here: it includes the card's own retroarch.cfg and
++ * then names the directories under HOME that the card declares as saves
++ * (directory saves, `.mun/saves`). Nothing is written outside HOME. */
++#include <dirent.h>
++#include <errno.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <unistd.h>
++
++#define MUN_PATH_MAX 1024
++
++static bool mun_plain(const char *s)
++{
++   /* Paths go inside a quoted config value: refuse what would break it. */
++   for (; *s; s++)
++      if (*s == '"' || *s == '\n' || *s == '\r')
++         return false;
++   return true;
++}
++
++static bool mun_mkdir(const char *path)
++{
++   return mkdir(path, 0755) == 0 || errno == EEXIST;
++}
++
++/* The first regular, non-hidden file of dir by name, or false. */
++static bool mun_first_file(const char *dir, char *out, size_t size)
++{
++   DIR *d = opendir(dir);
++   struct dirent *e;
++   char best[256];
++   bool found = false;
++
++   if (!d)
++      return false;
++   best[0] = '\0';
++   while ((e = readdir(d)))
++   {
++      char full[MUN_PATH_MAX];
++      struct stat st;
++
++      if (e->d_name[0] == '.')
++         continue;
++      if (snprintf(full, sizeof(full), "%s/%s", dir, e->d_name) >= (int)sizeof(full))
++         continue;
++      if (stat(full, &st) != 0 || !S_ISREG(st.st_mode))
++         continue;
++      if (!found || strcmp(e->d_name, best) < 0)
++      {
++         strlcpy(best, e->d_name, sizeof(best));
++         found = true;
++      }
++   }
++   closedir(d);
++   if (!found)
++      return false;
++   return snprintf(out, size, "%s/%s", dir, best) < (int)size;
++}
++
++static bool mun_session_args(char **argv, char *appendconfig, size_t ac_size,
++      char *content, size_t content_size, char **out)
++{
++   const char *content_dir = getenv("MUN_CONTENT_DIR");
++   const char *home        = getenv("HOME");
++   char card_cfg[MUN_PATH_MAX];
++   char dir[MUN_PATH_MAX];
++   char cfg[MUN_PATH_MAX];
++   char rom_dir[MUN_PATH_MAX];
++   FILE *f;
++   int n = 0;
++
++   if (!content_dir || !*content_dir || !home || !*home)
++      return false;
++   if (!mun_plain(content_dir) || !mun_plain(home))
++      return false;
++   if (snprintf(card_cfg, sizeof(card_cfg), "%s/retroarch.cfg", content_dir) >= (int)sizeof(card_cfg))
++      return false;
++   if (access(card_cfg, R_OK) != 0)
++      return false;
++
++   if (snprintf(dir, sizeof(dir), "%s/.mun", home) >= (int)sizeof(dir))
++      return false;
++   if (!mun_mkdir(dir))
++      return false;
++   if (snprintf(cfg, sizeof(cfg), "%s/.mun/saves", home) >= (int)sizeof(cfg) || !mun_mkdir(cfg))
++      return false;
++   if (snprintf(cfg, sizeof(cfg), "%s/.mun/system", home) >= (int)sizeof(cfg) || !mun_mkdir(cfg))
++      return false;
++   if (snprintf(appendconfig, ac_size, "--appendconfig=%s/.mun/session.cfg", home) >= (int)ac_size)
++      return false;
++
++   if (snprintf(cfg, sizeof(cfg), "%s/.mun/session.cfg", home) >= (int)sizeof(cfg))
++      return false;
++   if (!(f = fopen(cfg, "w")))
++      return false;
++   fprintf(f, "#include \"%s\"\n", card_cfg);
++   fprintf(f, "savefile_directory = \"%s/.mun/saves\"\n", home);
++   fprintf(f, "savestate_directory = \"%s/.mun/saves\"\n", home);
++   fprintf(f, "system_directory = \"%s/.mun/system\"\n", home);
++   fprintf(f, "config_save_on_exit = \"false\"\n");
++   if (fclose(f) != 0)
++      return false;
++
++   out[n++] = argv[0];
++   out[n++] = appendconfig;
++   content[0] = '\0';
++   if (snprintf(rom_dir, sizeof(rom_dir), "%s/rom", content_dir) < (int)sizeof(rom_dir)
++         && mun_first_file(rom_dir, content, content_size))
++      out[n++] = content;
++   out[n] = NULL;
++   return true;
++}
++#endif
++
+ #ifdef __cplusplus
+ extern "C"
+ #endif
+ int main(int argc, char *argv[])
+ {
++#if defined(__linux__)
++   if (argc == 1)
++   {
++      static char appendconfig[MUN_PATH_MAX + 32];
++      static char content[MUN_PATH_MAX];
++      char *mun_argv[4];
++
++      if (mun_session_args(argv, appendconfig, sizeof(appendconfig),
++               content, sizeof(content), mun_argv))
++         return rarch_main(content[0] ? 3 : 2, mun_argv, NULL);
++   }
++#endif
+    return rarch_main(argc, argv, NULL);
+ }
+ #endif

@@ -1,0 +1,20 @@
+# RetroArch with the libretro 2048 core linked in, as a MUN game.
+# `mdk build` and `mdk check` read this file; pack.sh makes the card (mdk's own
+# `pack` has no way to declare directory saves yet).
+
+[project]
+name = "retroarch-2048"
+
+[card]
+id = "retroarch.2048"
+title = "RetroArch: 2048"
+version = "0.1.0"
+profile = "linux-arm64-gl-v0"
+size_mib = 128
+
+[build]
+run = "sh build.sh"
+entry = "build/retroarch-2048"
+content = "build/content"
+# RetroArch is an engine we did not write to MUN's hardening flags: report, do not stop.
+hardening = "report"

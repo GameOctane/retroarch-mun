@@ -1,0 +1,59 @@
+# Build RetroArch (with the 2048 core) for MUN on an ARM64 runner, check it
+# against the runtime profile, run it headless as a console would start it,
+# and make the Game Card image. Nothing is published: the card is a workflow
+# artifact (RetroArch is GPLv3: see README.md before sharing it).
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    env:
+      # The devkit revision this was written against.
+      MUN_DEVKIT_COMMIT: e7f2a01cdf05a06b9107849dc07ca55c89979ae1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: e2fsprogs (the card tool's mke2fs and debugfs)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends e2fsprogs
+      - name: The MUN devkit, at the pinned revision, and MUN OS's tools
+        run: |
+          git init -q .local/mun-devkit
+          git -C .local/mun-devkit remote add origin https://github.com/Play-MUN/mun-devkit.git
+          git -C .local/mun-devkit fetch -q --depth 1 origin "$MUN_DEVKIT_COMMIT"
+          git -C .local/mun-devkit checkout -q FETCH_HEAD
+          .local/mun-devkit/mdk os fetch
+          .local/mun-devkit/mdk doctor
+      - name: The build environment (Debian 13 ARM64, the console's libraries)
+        run: .local/mun-devkit/mdk env build
+      - name: Sources at their pinned commits, with the MUN patch
+        run: ./fetch.sh
+      - name: Build
+        run: .local/mun-devkit/mdk build
+      - name: Check against the runtime profile
+        run: .local/mun-devkit/mdk check
+      - name: Run it headless, stop it with SIGTERM
+        run: MDK=.local/mun-devkit/mdk sh tests/smoke.sh
+      - name: Make the card
+        run: MDK="$PWD/.local/mun-devkit/mdk" MUN_OS_DIR="$PWD/.local/mun-devkit/.local/mun-os" sh pack.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: always()
+        with:
+          name: retroarch-2048-card
+          path: |
+            build/retroarch-2048.img
+            build/build.log
+          if-no-files-found: warn
