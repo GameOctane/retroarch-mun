@@ -13,7 +13,7 @@ set -eu
 
 cd "$(dirname "$0")/.."
 MDK=${MDK:-../mun-devkit/mdk}
-IMAGE=$("$MDK" env | awk '$1 == "image" { print $2 }')
+IMAGE=$("$MDK" env info | awk '$1 == "image" { print $2 }')
 [ -n "$IMAGE" ] || { echo "smoke.sh: the devkit's environment is not built (mdk env build)" >&2; exit 1; }
 [ -x build/retroarch-2048 ] || { echo "smoke.sh: build/retroarch-2048 missing (mdk build)" >&2; exit 1; }
 
