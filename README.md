@@ -6,18 +6,23 @@ RetroArch, with one libretro core linked into it, as a game for MUN OS's
 
 ## Status
 
-Nothing here has been run on a console or in MUN OS's virtual console, and the
-C code has not been compiled yet by anyone. What was checked, on a Windows PC
-with no C compiler, QEMU or container runtime:
+Built and checked in CI on an ARM64 runner (GitHub Actions, green). Not yet run
+in MUN OS's virtual console or on any display, so video, sound and keys are
+untried.
 
 | Check | Result |
 | --- | --- |
-| `patches/0001-mun-session.patch` applies to RetroArch at the pinned commit | Yes (`git apply --check`) |
-| `fetch.sh` fetches both sources at their pinned commits and applies the patch | Yes, run end to end (the patch's SHA-256 is checked) |
-| `mun-project.toml` is read by `mdk`'s own loader | Yes |
-| MUN OS's card tool writes the manifest with the directory saves | Yes, the generated `mun.toml` was inspected; the image itself (needs `mke2fs`) was not made |
-| It compiles, links only what the profile provides, runs and exits 0 on SIGTERM | **Not yet.** The workflow in `.github/workflows/build.yml` is where this first happens |
-| Video, sound and keys on a console | **Not tried** |
+| Patches apply to RetroArch v1.22.2 at its pinned commit; sources fetched at pinned commits | Yes |
+| Compiles and links in the devkit's Debian 13 ARM64 environment | Yes: a 9.8 MiB ELF |
+| `mdk check`: needs only libraries the profile provides (libm, libasound, libGL, SDL2, libc) | Passes; one warning, no BTI/PAC branch protection (the devkit's "report" level) |
+| Started as a console starts it (no arguments, empty HOME, `MUN_CONTENT_DIR`), headless | Yes: runs the core directly, no menu |
+| SIGTERM | Exits 0, after writing `2048.state.auto` and `2048.srm` into `.mun/saves` (the directory the card declares) |
+| Card image made and inspected by MUN OS's card tool | Yes, valid; directory saves declared |
+| Real display (SDL2 over KMS/DRM), sound, keyboard, restoring the state in a second session, card removal | **Not tried** |
+
+Known: with the null audio driver RetroArch logs `failed_to_start_audio_driver`
+and carries on without sound; on a console the audio path is SDL2 over ALSA and
+is untested.
 
 ## How it fits MUN's contracts
 
