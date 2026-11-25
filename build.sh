@@ -47,7 +47,7 @@ CXXFLAGS="-O2 -g0 -fstack-protector-strong" \
     --enable-sdl2 --disable-sdl --enable-opengl --enable-alsa \
     --disable-kms --disable-egl --disable-vg --disable-udev --disable-x11 --disable-wayland \
     --disable-vulkan --disable-pulse --disable-oss --disable-jack --disable-pipewire \
-    --disable-roar --disable-rsound --disable-tinyalsa --disable-audioio --disable-sndio \
+    --disable-roar --disable-rsound --disable-tinyalsa --disable-audioio \
     --disable-networking --disable-networkgamepad --disable-ssl --disable-discord \
     --disable-cheevos --disable-online_updater --disable-update_cores \
     --disable-update_core_info --disable-update_assets --disable-qt --disable-ffmpeg \
