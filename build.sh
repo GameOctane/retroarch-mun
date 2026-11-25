@@ -43,7 +43,7 @@ cd third_party/retroarch
 # libxkbcommon is auto-detected and has no --disable switch; configure skips a
 # package whose HAVE_ variable is already "no". The profile does not provide it.
 export HAVE_XKBCOMMON=no
-CFLAGS="-O2 -g0 -fstack-protector-strong -D_FORTIFY_SOURCE=3 -mbranch-protection=standard" \
+CFLAGS="-O2 -g0 -fstack-protector-strong -D_FORTIFY_SOURCE=3 -mbranch-protection=standard -fno-tree-vectorize -fno-tree-slp-vectorize" \
 CXXFLAGS="-O2 -g0 -fstack-protector-strong" \
 LDFLAGS="-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack" \
 ./configure \
