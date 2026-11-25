@@ -1,0 +1,16 @@
+diff --git a/qb/config.libs.sh b/qb/config.libs.sh
+index d5315b8..b997e64 100644
+--- a/qb/config.libs.sh
++++ b/qb/config.libs.sh
+@@ -150,7 +150,10 @@ else
+ fi
+ 
+ [ "$HAVE_DYNAMIC" = 'yes' ] || {
+-   check_lib '' RETRO "$LIBRETRO" retro_init "$DYLIB" '' '' 'Cannot find libretro, did you forget --with-libretro="-lretro"?'
++   # MUN: a static core is built without libretro-common (its makefile leaves
++   # it out because the frontend provides it), so linking the core alone, as
++   # check_lib does, always fails on filestream_* and friends. The real link
++   # at the end of the build is the check.
+    add_define MAKEFILE libretro "$LIBRETRO"
+ }
+ 

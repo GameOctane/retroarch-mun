@@ -12,8 +12,9 @@ RETROARCH_URL=https://github.com/libretro/RetroArch.git
 RETROARCH_COMMIT=69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576   # v1.22.2
 CORE_URL=https://github.com/libretro/libretro-2048.git
 CORE_COMMIT=39333f7b13dc4daea7c151d9c38d22b961246343
-PATCH=patches/0001-mun-session.patch
-PATCH_SHA256=c3d4906c34c5a81506cef184d253e115946c528d7b58af0963d60eb5827c0465
+# Patches, in order, each with its SHA-256.
+PATCHES="patches/0001-mun-session.patch:c3d4906c34c5a81506cef184d253e115946c528d7b58af0963d60eb5827c0465
+patches/0002-static-core-configure.patch:7a884ba7e2a6e19d5bb4293385f159a42fc9e1a2fbc97c9cc5cd58e8e97d982e"
 
 fetch() { # url commit directory
     rm -rf "$3"
@@ -30,10 +31,14 @@ mkdir -p third_party
 fetch "$RETROARCH_URL" "$RETROARCH_COMMIT" third_party/retroarch
 fetch "$CORE_URL" "$CORE_COMMIT" third_party/core-2048
 
-got=$(sha256sum "$PATCH" | cut -d' ' -f1)
-[ "$got" = "$PATCH_SHA256" ] || { echo "fetch.sh: $PATCH does not match its SHA-256" >&2; exit 1; }
-git -C third_party/retroarch apply --whitespace=nowarn "../../$PATCH"
-echo "applied $PATCH"
+for entry in $PATCHES; do
+    file=${entry%%:*}
+    want=${entry##*:}
+    got=$(sha256sum "$file" | cut -d' ' -f1)
+    [ "$got" = "$want" ] || { echo "fetch.sh: $file does not match its SHA-256" >&2; exit 1; }
+    git -C third_party/retroarch apply --whitespace=nowarn "../../$file"
+    echo "applied $file"
+done
 
 # The build reads sources, not history.
 rm -rf third_party/retroarch/.git third_party/core-2048/.git
