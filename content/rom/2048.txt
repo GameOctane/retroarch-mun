@@ -1,0 +1,1 @@
+The 2048 core needs no data. RetroArch needs a content file to name its saves after (2048.srm, 2048.state.auto), so this card carries this one.
