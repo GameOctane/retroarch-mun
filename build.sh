@@ -31,8 +31,11 @@ command -v pkg-config >/dev/null 2>&1 || command -v pkgconf >/dev/null 2>&1 || {
 mkdir -p "$OUT/content"
 
 # 1. The core, as a static archive.
-make -C third_party/core-2048 -f Makefile.libretro platform=unix STATIC_LINKING=1 -j"$JOBS" \
-    CFLAGS="-O2 -g0 -fstack-protector-strong -D_FORTIFY_SOURCE=3"
+# CFLAGS goes in the environment, not on make's command line: the core's
+# makefile appends its include paths with `CFLAGS +=`, which a command-line
+# CFLAGS would silently override.
+CFLAGS="-O2 -g0 -fstack-protector-strong -D_FORTIFY_SOURCE=3" \
+make -C third_party/core-2048 -f Makefile.libretro platform=unix STATIC_LINKING=1 -j"$JOBS"
 CORE_A=$(ls "$ROOT"/third_party/core-2048/*_libretro_unix.a)
 
 # 2. RetroArch, with that core and only what the profile provides.
