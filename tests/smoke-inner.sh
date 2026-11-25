@@ -17,6 +17,7 @@ video_driver = "null"
 audio_driver = "null"
 input_driver = "null"
 input_joypad_driver = "null"
+log_verbosity = "true"
 EOF
 
 cd "$HOME"
@@ -28,6 +29,7 @@ kill -TERM "$pid"
 rc=0
 wait "$pid" || rc=$?
 
+echo "--- session.cfg"; cat "$HOME/.mun/session.cfg" 2>&1
 echo "--- run.log"; cat "$HOME/run.log"
 echo "--- exit code: $rc"
 [ "$rc" -eq 0 ] || { echo "FAIL: exit code $rc after SIGTERM, wanted 0"; exit 1; }
