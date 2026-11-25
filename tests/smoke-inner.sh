@@ -12,6 +12,7 @@ export MUN_SESSION=smoke MUN_RUNTIME_PROFILE=linux-arm64-gl-v0
 # for null ones: everything else, saves included, is what a card carries.
 grep -v -E '^(video_driver|audio_driver|input_driver|input_joypad_driver|video_fullscreen|video_windowed_fullscreen)[ =]' \
     /work/build/content/retroarch.cfg > "$CONTENT/retroarch.cfg"
+cp -R /work/build/content/rom "$CONTENT/rom"
 cat >> "$CONTENT/retroarch.cfg" <<'EOF'
 video_driver = "null"
 audio_driver = "null"
