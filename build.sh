@@ -40,8 +40,12 @@ CORE_A=$(ls "$ROOT"/third_party/core-2048/*_libretro_unix.a)
 
 # 2. RetroArch, with that core and only what the profile provides.
 cd third_party/retroarch
-CFLAGS="-O2 -g0 -fstack-protector-strong -D_FORTIFY_SOURCE=3" \
+# libxkbcommon is auto-detected and has no --disable switch; configure skips a
+# package whose HAVE_ variable is already "no". The profile does not provide it.
+export HAVE_XKBCOMMON=no
+CFLAGS="-O2 -g0 -fstack-protector-strong -D_FORTIFY_SOURCE=3 -mbranch-protection=standard" \
 CXXFLAGS="-O2 -g0 -fstack-protector-strong" \
+LDFLAGS="-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack" \
 ./configure \
     --disable-dynamic --with-libretro="$CORE_A -lm" \
     --enable-sdl2 --disable-sdl --enable-opengl --enable-alsa \
@@ -57,6 +61,10 @@ CXXFLAGS="-O2 -g0 -fstack-protector-strong" \
     --disable-videoprocessor --disable-videocore --disable-parport --disable-rpiled \
     --enable-builtinzlib
 make -j"$JOBS" retroarch
+# What the program asks the system for, so a library the profile lacks is
+# traced to its cause here and not only named by `mdk check`.
+echo "--- NEEDED"; readelf -d retroarch | grep NEEDED || true
+echo "--- vectorised libm symbols (libmvec)"; nm -D --undefined-only retroarch | grep -E "_ZGV" || echo none
 cd "$ROOT"
 
 # 3. The entry, and the card's content.
